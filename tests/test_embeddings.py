@@ -1,4 +1,5 @@
 from devassistant.embeddings import embed
+import pytest
 
 
 texts = [
@@ -7,12 +8,34 @@ texts = [
     "Les pommes sont des fruits.",
 ]
 
+def test_embedding_count():
+    vectors = embed(texts)
+    assert len(vectors) == len(texts)
 
-vectors = embed(texts)
+def test_embedding_dimension():
+    vectors = embed(texts)
 
+    for vector in vectors:
+        assert len(vector) == 768
 
-for i, vector in enumerate(vectors):
-    print(f"Texte {i + 1}")
-    print(f"Nombre de dimensions : {len(vector)}")
-    print(f"Premières valeurs : {vector[:5]}")
-    print()
+def test_embedding_type():
+    vectors = embed(texts)
+    
+    for vector in vectors:
+        assert isinstance(vector, list)
+
+def test_embedding_values():
+    vectors = embed(texts)
+    for vector in vectors:
+        for value in vector:
+            assert isinstance(value, float)
+
+def test_embedding_empty_input():
+    with pytest.raises(ValueError):
+        embed([])
+
+def test_embedding_single_text():
+    vectors = embed(["Le Nutri-Score évalue la qualité nutritionnelle."])
+
+    assert len(vectors) == 1
+    
