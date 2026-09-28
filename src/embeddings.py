@@ -1,6 +1,6 @@
 from openai import OpenAI
 
-from devassistant.config import LMSTUDIO_API_KEY, LMSTUDIO_BASE_URL
+from config import LMSTUDIO_API_KEY, LMSTUDIO_BASE_URL, LMSTUDIO_EMBEDDING_MODEL
 
 
 client = OpenAI(
@@ -15,11 +15,13 @@ texts = [
     "Les pommes sont des fruits."
 ]
 
+def embed(model, texts):
+    response = client.embeddings.create(
+        model=LMSTUDIO_EMBEDDING_MODEL,
+        input=texts,
+    )
 
-response = client.embeddings.create(
-    model="text-embedding-nomic-embed-text-v1.5",
-    input=texts,
-)
+    return [embedding.embedding for embedding in response.data]
 
 
 for i, embedding in enumerate(response.data):
@@ -29,3 +31,6 @@ for i, embedding in enumerate(response.data):
     print(f"Nombre de dimensions : {len(vector)}")
     print(f"Premières valeurs : {vector[:5]}")
     print()
+
+
+def embed(texts: list[str]) -> ...:

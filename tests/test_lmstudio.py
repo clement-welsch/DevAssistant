@@ -1,4 +1,4 @@
-from lmstudio_client import ask
+from devassistant.lmstudio_client import ask
 
 
 response = ask(
