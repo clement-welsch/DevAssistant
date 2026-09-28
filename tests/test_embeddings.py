@@ -1,30 +1,17 @@
-from openai import OpenAI
-
-from devassistant.config import LMSTUDIO_API_KEY, LMSTUDIO_BASE_URL
-
-
-client = OpenAI(
-    base_url=LMSTUDIO_BASE_URL,
-    api_key=LMSTUDIO_API_KEY,
-)
+from devassistant.embeddings import embed
 
 
 texts = [
     "Le Nutri-Score évalue la qualité nutritionnelle des aliments.",
     "Le produit contient beaucoup de protéines.",
-    "Les pommes sont des fruits."
+    "Les pommes sont des fruits.",
 ]
 
 
-response = client.embeddings.create(
-    model="text-embedding-nomic-embed-text-v1.5",
-    input=texts,
-)
+vectors = embed(texts)
 
 
-for i, embedding in enumerate(response.data):
-    vector = embedding.embedding
-
+for i, vector in enumerate(vectors):
     print(f"Texte {i + 1}")
     print(f"Nombre de dimensions : {len(vector)}")
     print(f"Premières valeurs : {vector[:5]}")
