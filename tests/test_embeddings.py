@@ -40,26 +40,52 @@ def test_embedding_single_text():
     assert len(vectors) == 1
 
 ###
+
 from types import SimpleNamespace
 
-def fake_create(model, input):
-    # Simule la réponse renvoyée par LM Studio
-    return SimpleNamespace(
-        data=[
-            SimpleNamespace(embedding=[0.1, 0.2, 0.3]),
-            SimpleNamespace(embedding=[0.4, 0.5, 0.6]),
-            SimpleNamespace(embedding=[0.7, 0.8, 0.9]),
-        ]
-    )
-
-def test_embedding_count_without_lmstudio(monkeypatch):
+@pytest.fixture
+def mock_lmstudio(monkeypatch):
     monkeypatch.setattr(
         "devassistant.embeddings.client.embeddings.create",
         fake_create,
     )
 
-    vectors = embed(texts)
+def fake_create(model, input):
+    if not input:
+        raise ValueError("No embedding data received")
 
+    return SimpleNamespace(
+        data=[
+            SimpleNamespace(embedding=[0.1] * 768)
+            for _ in input
+        ]
+    )
+
+def test_embedding_count_without_lmstudio(monkeypatch):
+    vectors = embed(texts)
     assert len(vectors) == len(texts)
 
-    
+def test_embedding_dimension_without_lmstudio(monkeypatch):
+    vectors = embed(texts)
+
+    for vector in vectors:
+        assert len(vector) == 768
+
+def test_embedding_type_without_lmstudio(monkeypatch):
+    vectors = embed(texts)
+    for vector in vectors:
+        assert isinstance(vector, list)
+
+def test_embedding_values_without_lmstudio(monkeypatch):
+    vectors = embed(texts)
+    for vector in vectors:
+        for value in vector:
+            assert isinstance(value, float)
+
+def test_embedding_empty_input_without_lmstudio(monkeypatch):
+    with pytest.raises(ValueError):
+        embed([])
+
+def test_embedding_single_text_without_lmstudio(monkeypatch):
+    vectors = embed(["Le Nutri-Score évalue la qualité nutritionnelle."])
+    assert len(vectors) == 1
