@@ -52,3 +52,21 @@ def test_search(monkeypatch, documents, fake_embed):
     answer = search(documents, "Ma question", top_k=2)
     assert len(answer) == 2
     assert answer[0] == (1.0, "Document très pertinent")
+
+    answer = search(documents, "Ma question", top_k=1)
+    assert len(answer) == 1
+    assert answer[0] == (1.0, "Document très pertinent")
+
+    answer = search(documents, "Ma question", top_k=10)
+    assert len(answer) == 3
+    assert answer[0] == (1.0, "Document très pertinent")
+
+def test_search_empty_documents(monkeypatch, fake_embed):
+    monkeypatch.setattr(
+        "devassistant.search.embed",
+        fake_embed,
+    )
+
+    answer = search([], "Ma question")
+
+    assert answer == []
