@@ -1,6 +1,7 @@
 from devassistant.document_loader import load_documents
 from devassistant.search import search
 from devassistant.lmstudio_client import ask
+from devassistant.prompt import build_prompt
 
 
 def get_answer(directory, question, chunk_size=60, overlap=12, top_k=3):
@@ -22,7 +23,11 @@ def get_answer(directory, question, chunk_size=60, overlap=12, top_k=3):
         contexts.append(document[1])
 
     context = "\n".join(contexts)
-    prompt = f"Context:\n{context}\nQuestion:\n{question}"
+
+    prompt = build_prompt(
+        context,
+        question,
+    )
 
     response = ask(prompt)
 
