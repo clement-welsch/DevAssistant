@@ -1,17 +1,21 @@
 from devassistant.rag import get_answer
 
 
-def test_rag_integration():
-    documents = [
-        "Python is a high-level programming language.",
-        "C++ is a compiled programming language commonly used for game development.",
-        "RAG combines document retrieval with language model generation.",
-    ]
+def test_rag_integration(tmp_path):
+    python_file = tmp_path / "python.md"
+    python_file.write_text(
+        "Python is a high-level programming language."
+    )
+
+    rag_file = tmp_path / "rag.md"
+    rag_file.write_text(
+        "RAG combines document retrieval with language model generation."
+    )
 
     question = "What is RAG?"
 
     answer = get_answer(
-        documents=documents,
+        directory=tmp_path,
         question=question,
     )
 

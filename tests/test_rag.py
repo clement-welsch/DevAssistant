@@ -4,20 +4,26 @@ from devassistant.rag import get_answer
 
 
 @pytest.fixture
-def documents():
-    return [
-        "Document peu pertinent",
-        "Document très pertinent",
-        "Document moyennement pertinent",
-    ]
+def documents(tmp_path):
+    python_file = tmp_path / "python.md"
+    python_file.write_text(
+        "Python is a high-level programming language."
+    )
+
+    rag_file = tmp_path / "rag.md"
+    rag_file.write_text(
+        "RAG combines document retrieval with language model generation."
+    )
+
+    return tmp_path
 
 
 @pytest.fixture
 def fake_search():
     def _fake_search(documents, question):
         return [
-            (1.0, "Document très pertinent"),
-            (0.7, "Document moyennement pertinent"),
+            (1.0, "RAG combines document retrieval with language model generation."),
+            (0.7, "Python is a high-level programming language."),
         ]
 
     return _fake_search
@@ -29,7 +35,7 @@ def fake_ask():
 
     def _fake_ask(prompt):
         captured["prompt"] = prompt
-        return "Voici la réponse générée."
+        return "Here is the generated answer."
 
     return _fake_ask, captured
 
@@ -48,21 +54,22 @@ def test_get_answer(monkeypatch, documents, fake_search, fake_ask):
     )
 
     answer = get_answer(
-        documents=documents,
-        question="Ma question",
+        directory=documents,
+        question="What is RAG?",
     )
 
-    assert answer == "Voici la réponse générée."
+    assert answer == "Here is the generated answer."
 
     assert captured["prompt"] == (
         "Context:\n"
-        "Document très pertinent\n"
-        "Document moyennement pertinent\n"
+        "RAG combines document retrieval with language model generation.\n"
+        "Python is a high-level programming language.\n"
         "Question:\n"
-        "Ma question"
+        "What is RAG?"
     )
 
-def test_get_answer_empty_documents(monkeypatch, fake_ask):
+
+def test_get_answer_empty_directory(monkeypatch, tmp_path, fake_ask):
     ask, captured = fake_ask
 
     monkeypatch.setattr(
@@ -76,14 +83,14 @@ def test_get_answer_empty_documents(monkeypatch, fake_ask):
     )
 
     answer = get_answer(
-        documents=[],
-        question="Ma question",
+        directory=tmp_path,
+        question="What is RAG?",
     )
 
-    assert answer == "Voici la réponse générée."
+    assert answer == "Here is the generated answer."
 
-    assert "Context:" in captured["prompt"]
-    assert "Question:" in captured["prompt"]
-    assert "Ma question" in captured["prompt"]
-
-    assert captured["prompt"] == "Context:\n\nQuestion:\nMa question"
+    assert captured["prompt"] == (
+        "Context:\n\n"
+        "Question:\n"
+        "What is RAG?"
+    )
