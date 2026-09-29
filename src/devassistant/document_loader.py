@@ -15,6 +15,12 @@ def load_documents(directory, chunk_size=60, overlap=12):
             overlap=overlap,
         )
 
-        documents.extend(chunks)
+        for chunk in chunks:
+            documents.append(
+                {
+                    "content": chunk,
+                    "source": file.name,
+                }
+            )
 
     return documents

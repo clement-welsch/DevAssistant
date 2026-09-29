@@ -19,7 +19,7 @@ def get_answer(directory, question, chunk_size=60, overlap=12, top_k=3):
     contexts = []
 
     for document in best_docs:
-        contexts.append(document[1])
+        contexts.append(document[1]["content"])
 
     context = "\n".join(contexts)
     prompt = f"Context:\n{context}\nQuestion:\n{question}"

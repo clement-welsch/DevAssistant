@@ -40,7 +40,33 @@ def fake_ask():
     return _fake_ask, captured
 
 
-def test_get_answer(monkeypatch, documents, fake_search, fake_ask):
+def test_get_answer(monkeypatch, documents, fake_ask):
+    captured = {}
+
+    def fake_search(documents, question, top_k=3):
+        return [
+            (
+                1.0,
+                {
+                    "content": (
+                        "RAG combines document retrieval "
+                        "with language model generation."
+                    ),
+                    "source": "rag.md",
+                },
+            ),
+            (
+                0.7,
+                {
+                    "content": (
+                        "Python is a high-level "
+                        "programming language."
+                    ),
+                    "source": "python.md",
+                },
+            ),
+        ]
+
     ask, captured = fake_ask
 
     monkeypatch.setattr(
@@ -138,11 +164,11 @@ def test_get_answer_with_chunks(monkeypatch, tmp_path):
     assert len(captured["documents"]) > 1
 
     assert captured["prompt"] == (
-        "Context:\n"
-        f"{captured['documents'][1]}\n"
-        "Question:\n"
-        "What does RAG retrieve?"
-    )
+    "Context:\n"
+    f"{captured['documents'][1]['content']}\n"
+    "Question:\n"
+    "What does RAG retrieve?"
+)
 
 
 def test_get_answer_with_top_k(monkeypatch, tmp_path):

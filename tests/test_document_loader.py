@@ -11,8 +11,14 @@ def test_load_documents(tmp_path):
     documents = load_documents(tmp_path)
 
     assert documents == [
-        "Python content",
-        "RAG content",
+        {
+            "content": "Python content",
+            "source": "python.md",
+        },
+        {
+            "content": "RAG content",
+            "source": "rag.md",
+        },
     ]
 
 
@@ -31,7 +37,12 @@ def test_load_documents_ignores_non_markdown_files(tmp_path):
 
     documents = load_documents(tmp_path)
 
-    assert documents == ["Python content"]
+    assert documents == [
+        {
+            "content": "Python content",
+            "source": "python.md",
+        }
+    ]
 
 
 def test_load_documents_empty_markdown_file(tmp_path):
@@ -56,8 +67,14 @@ def test_load_documents_with_chunking(tmp_path):
     )
 
     assert documents == [
-        "one two three four",
-        "four five six",
+        {
+            "content": "one two three four",
+            "source": "document.md",
+        },
+        {
+            "content": "four five six",
+            "source": "document.md",
+        },
     ]
 
 
@@ -70,5 +87,24 @@ def test_load_documents_default_chunking(tmp_path):
     documents = load_documents(tmp_path)
 
     assert documents == [
-        "one two three",
+        {
+            "content": "one two three",
+            "source": "document.md",
+        }
+    ]
+
+
+def test_load_documents_keeps_source(tmp_path):
+    document = tmp_path / "rag.md"
+    document.write_text(
+        "RAG retrieves relevant information."
+    )
+
+    documents = load_documents(tmp_path)
+
+    assert documents == [
+        {
+            "content": "RAG retrieves relevant information.",
+            "source": "rag.md",
+        }
     ]
