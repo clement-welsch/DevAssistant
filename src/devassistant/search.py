@@ -1,7 +1,7 @@
 from devassistant.embeddings import embed
 from devassistant.similarity import cosine_similarity
 
-def search(documents, question):
+def search(documents, question, top_k=3):
     vectors_docs = embed(documents)
     vectors_question = embed([question])
 
@@ -13,4 +13,5 @@ def search(documents, question):
         array_cos.append((cosine_similarity(vector, question_vector), doc))
 
     array_cos.sort(reverse=True)
-    return array_cos[0]
+
+    return array_cos[:top_k]
