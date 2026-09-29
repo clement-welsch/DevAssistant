@@ -1,7 +1,6 @@
 from devassistant.embeddings import embed
 import pytest
 
-
 texts = [
     "Le Nutri-Score évalue la qualité nutritionnelle des aliments.",
     "Le produit contient beaucoup de protéines.",
