@@ -40,4 +40,35 @@ def test_load_documents_empty_markdown_file(tmp_path):
 
     documents = load_documents(tmp_path)
 
-    assert documents == [""]
+    assert documents == []
+
+
+def test_load_documents_with_chunking(tmp_path):
+    document = tmp_path / "document.md"
+    document.write_text(
+        "one two three four five six"
+    )
+
+    documents = load_documents(
+        tmp_path,
+        chunk_size=4,
+        overlap=1,
+    )
+
+    assert documents == [
+        "one two three four",
+        "four five six",
+    ]
+
+
+def test_load_documents_default_chunking(tmp_path):
+    document = tmp_path / "document.md"
+    document.write_text(
+        "one two three"
+    )
+
+    documents = load_documents(tmp_path)
+
+    assert documents == [
+        "one two three",
+    ]
