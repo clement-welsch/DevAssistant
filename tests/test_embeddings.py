@@ -61,31 +61,31 @@ def fake_create(model, input):
         ]
     )
 
-def test_embedding_count_without_lmstudio(monkeypatch):
+def test_embedding_count_without_lmstudio(mock_lmstudio):
     vectors = embed(texts)
     assert len(vectors) == len(texts)
 
-def test_embedding_dimension_without_lmstudio(monkeypatch):
+def test_embedding_dimension_without_lmstudio(mock_lmstudio):
     vectors = embed(texts)
 
     for vector in vectors:
         assert len(vector) == 768
 
-def test_embedding_type_without_lmstudio(monkeypatch):
+def test_embedding_type_without_lmstudio(mock_lmstudio):
     vectors = embed(texts)
     for vector in vectors:
         assert isinstance(vector, list)
 
-def test_embedding_values_without_lmstudio(monkeypatch):
+def test_embedding_values_without_lmstudio(mock_lmstudio):
     vectors = embed(texts)
     for vector in vectors:
         for value in vector:
             assert isinstance(value, float)
 
-def test_embedding_empty_input_without_lmstudio(monkeypatch):
+def test_embedding_empty_input_without_lmstudio(mock_lmstudio):
     with pytest.raises(ValueError):
         embed([])
 
-def test_embedding_single_text_without_lmstudio(monkeypatch):
+def test_embedding_single_text_without_lmstudio(mock_lmstudio):
     vectors = embed(["Le Nutri-Score évalue la qualité nutritionnelle."])
     assert len(vectors) == 1
