@@ -1,7 +1,7 @@
 import numpy as np
 from openai import OpenAI
 
-from config import LMSTUDIO_API_KEY, LMSTUDIO_BASE_URL
+from devassistant.config import LMSTUDIO_API_KEY, LMSTUDIO_BASE_URL
 
 
 client = OpenAI(
