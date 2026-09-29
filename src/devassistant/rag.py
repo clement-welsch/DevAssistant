@@ -2,9 +2,15 @@ from devassistant.document_loader import load_documents
 from devassistant.search import search
 from devassistant.lmstudio_client import ask
 
-def get_answer(directory, question):
-    documents = load_documents(directory)
+def get_answer(directory, question, chunk_size=60, overlap=12):
+    documents = load_documents(
+        directory,
+        chunk_size=chunk_size,
+        overlap=overlap,
+    )
+
     best_docs = search(documents, question)
+
     contexts = []
 
     for document in best_docs:

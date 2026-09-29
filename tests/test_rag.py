@@ -94,3 +94,51 @@ def test_get_answer_empty_directory(monkeypatch, tmp_path, fake_ask):
         "Question:\n"
         "What is RAG?"
     )
+
+def test_get_answer_with_chunks(monkeypatch, tmp_path):
+    document = tmp_path / "document.md"
+    document.write_text(
+        "Python is a programming language. "
+        "RAG retrieves relevant document chunks. "
+        "C++ is commonly used for game development."
+    )
+
+    captured = {}
+
+    def fake_search(documents, question):
+        captured["documents"] = documents
+        return [
+            (1.0, documents[1]),
+        ]
+
+    def fake_ask(prompt):
+        captured["prompt"] = prompt
+        return "RAG retrieves relevant information."
+
+    monkeypatch.setattr(
+        "devassistant.rag.search",
+        fake_search,
+    )
+
+    monkeypatch.setattr(
+        "devassistant.rag.ask",
+        fake_ask,
+    )
+
+    answer = get_answer(
+        directory=tmp_path,
+        question="What does RAG retrieve?",
+        chunk_size=10,
+        overlap=2,
+    )
+
+    assert answer == "RAG retrieves relevant information."
+
+    assert len(captured["documents"]) > 1
+
+    assert captured["prompt"] == (
+        "Context:\n"
+        f"{captured['documents'][1]}\n"
+        "Question:\n"
+        "What does RAG retrieve?"
+    )
