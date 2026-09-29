@@ -2,7 +2,6 @@ import pytest
 
 from devassistant.search import search
 
-
 @pytest.fixture
 def documents():
     return [
@@ -10,7 +9,6 @@ def documents():
         "Document très pertinent",
         "Document moyennement pertinent",
     ]
-
 
 @pytest.fixture
 def fake_embed(documents):
@@ -35,7 +33,6 @@ def fake_embed(documents):
     # This is the function that the test will give to monkeypatch.
     return _fake_embed
 
-
 def test_search(monkeypatch, documents, fake_embed):
     # search.py uses its own reference to embed().
     # We temporarily replace it with our fake function.
@@ -49,4 +46,9 @@ def test_search(monkeypatch, documents, fake_embed):
 
     # The second document has the same vector as the question,
     # so its cosine similarity is 1.0.
-    assert answer == (1.0, "Document très pertinent")
+    assert answer[0] == (1.0, "Document très pertinent")
+    assert len(answer) == 3
+
+    answer = search(documents, "Ma question", top_k=2)
+    assert len(answer) == 2
+    assert answer[0] == (1.0, "Document très pertinent")
