@@ -1,9 +1,3 @@
-Oui. Je mettrais surtout à jour **l'état actuel et l'architecture**, car ton README décrit encore une structure `devassistant/` à la racine qui n'est plus celle du projet : on utilise maintenant un **package `src/devassistant/`**.
-
-J'en profiterais aussi pour distinguer les **prototypes expérimentaux** des briques réellement intégrées au package.
-
-Voici une version complète mise à jour :
-
 # DevAssistant
 
 Assistant de développement local basé sur un LLM, avec une architecture RAG évolutive et orientée projets.
@@ -556,5 +550,3 @@ La prochaine étape consiste à **finaliser l'intégration de la génération d'
 * pytest
 
 Des technologies supplémentaires pourront être introduites lorsque leur nécessité sera démontrée par l'évolution du projet.
-
-Cette version reflète notamment le fait que **`python-package` est maintenant terminé** et que les embeddings/similarité ont été validés expérimentalement, mais que le **RAG de bout en bout n'existe pas encore**.
