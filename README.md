@@ -1,6 +1,6 @@
 # DevAssistant
 
-A local AI development assistant built around **Python, LM Studio, embeddings, semantic similarity, and RAG**.
+A local AI development assistant built around **Python, LM Studio, embeddings, semantic similarity, document chunking, and RAG**.
 
 The goal of this project is to build a lightweight and modular assistant capable of retrieving relevant information from a collection of documents and using a local LLM to generate an answer based on that context.
 
@@ -11,8 +11,11 @@ The goal of this project is to build a lightweight and modular assistant capable
 * Cosine similarity computation
 * Semantic document search
 * Top-k document retrieval
+* Markdown document loading
+* Fixed-size document chunking with configurable overlap
 * Retrieval-Augmented Generation (RAG)
 * Unit tests with mocked external dependencies
+* Integration tests with LM Studio
 
 ## Project Structure
 
@@ -26,13 +29,18 @@ DevAssistant/
 │       ├── lmstudio_client.py
 │       ├── similarity.py
 │       ├── search.py
-│       └── rag.py
+│       ├── rag.py
+│       ├── document_loader.py
+│       └── chunking.py
 ├── tests/
 │   ├── test_embeddings.py
 │   ├── test_lmstudio.py
 │   ├── test_similarity.py
 │   ├── test_search.py
-│   └── test_rag.py
+│   ├── test_rag.py
+│   ├── test_rag_integration.py
+│   ├── test_document_loader.py
+│   └── test_chunking.py
 ├── pyproject.toml
 └── README.md
 ```
@@ -45,13 +53,19 @@ The current pipeline is structured as follows:
 Documents
     │
     ▼
+Markdown Loader
+    │
+    ▼
+Document Chunking
+    │
+    ▼
 Embeddings
     │
     ▼
 Semantic Search
     │
     ▼
-Top-k Relevant Documents
+Top-k Relevant Chunks
     │
     ▼
 Context Construction
@@ -62,6 +76,40 @@ Local LLM
     ▼
 Generated Answer
 ```
+
+### Document Loading
+
+`document_loader.py` loads Markdown files from a directory.
+
+Non-Markdown files are ignored.
+
+Documents are automatically split into smaller chunks before being passed to the embedding and search pipeline.
+
+### Document Chunking
+
+`chunking.py` splits documents into fixed-size word chunks with configurable overlap.
+
+The default configuration is:
+
+```text
+Chunk size:
+60 words
+
+Overlap:
+12 words
+```
+
+For example, with a chunk size of 4 words and an overlap of 1 word:
+
+```text
+Chunk 1:
+one two three four
+
+Chunk 2:
+four five six
+```
+
+The overlap helps preserve contextual information between neighboring chunks.
 
 ### Embeddings
 
@@ -83,15 +131,15 @@ Cosine similarity is used to measure how semantically close two embeddings are.
 
 ### Search
 
-`search.py` embeds the documents and the user's question, then ranks the documents according to their cosine similarity with the question.
+`search.py` embeds the document chunks and the user's question, then ranks the chunks according to their cosine similarity with the question.
 
-The search function supports a `top_k` parameter to limit the number of retrieved documents.
+The search function supports a `top_k` parameter to limit the number of retrieved chunks.
 
 ### RAG
 
-`rag.py` combines semantic search with the local LLM.
+`rag.py` combines document loading, chunking, semantic search, and local LLM generation.
 
-The retrieved documents are converted into a context and passed to the LLM together with the original question.
+The retrieved chunks are converted into a context and passed to the LLM together with the original question.
 
 The current pipeline is:
 
@@ -99,10 +147,16 @@ The current pipeline is:
 Question
    │
    ▼
+Document Loading
+   │
+   ▼
+Document Chunking
+   │
+   ▼
 Semantic Search
    │
    ▼
-Relevant Documents
+Relevant Chunks
    │
    ▼
 Context + Question
@@ -112,6 +166,19 @@ LM Studio
    │
    ▼
 Answer
+```
+
+The chunking configuration can be customized when calling `get_answer()`:
+
+```python
+from devassistant.rag import get_answer
+
+answer = get_answer(
+    directory="documents",
+    question="What is RAG?",
+    chunk_size=60,
+    overlap=12,
+)
 ```
 
 ## Requirements
@@ -182,6 +249,55 @@ LMSTUDIO_API_KEY = "lm-studio"
 LMSTUDIO_MODEL = "gemma-4-e4b"
 ```
 
+## Usage Example
+
+Create a directory containing Markdown documents:
+
+```text
+documents/
+├── python.md
+├── rag.md
+└── cpp.md
+```
+
+Then use the RAG pipeline directly from Python:
+
+```python
+from devassistant.rag import get_answer
+
+answer = get_answer(
+    directory="documents",
+    question="What is RAG?",
+)
+
+print(answer)
+```
+
+The pipeline performs the following steps:
+
+1. Load Markdown documents from the directory.
+2. Split the documents into overlapping chunks.
+3. Generate embeddings for the chunks.
+4. Generate an embedding for the question.
+5. Compute cosine similarity between the question and each chunk.
+6. Retrieve the most relevant chunks.
+7. Build a context from the retrieved chunks.
+8. Send the context and question to the local LLM through LM Studio.
+9. Return the generated answer.
+
+The chunking parameters can also be customized:
+
+```python
+answer = get_answer(
+    directory="documents",
+    question="What is RAG?",
+    chunk_size=100,
+    overlap=20,
+)
+
+print(answer)
+```
+
 ## Running the Tests
 
 Run the complete test suite with:
@@ -190,7 +306,7 @@ Run the complete test suite with:
 pytest
 ```
 
-The current test suite covers:
+The test suite covers:
 
 * Embedding generation
 * Embedding dimensions and types
@@ -198,14 +314,16 @@ The current test suite covers:
 * Cosine similarity
 * Semantic search
 * Top-k retrieval
-* RAG context construction
+* Markdown document loading
 * Empty document handling
+* Document chunking
+* Chunk overlap
+* RAG context construction
+* Chunk-based RAG retrieval
+* Empty document handling in the RAG pipeline
+* RAG integration with LM Studio
 
-Current status:
-
-```text
-21 passed
-```
+All tests currently pass.
 
 ## Development
 
@@ -218,45 +336,12 @@ The current development stages are:
 3. Cosine similarity
 4. Semantic search
 5. RAG context construction
-6. Local LLM generation
+6. Markdown document loading
+7. Document chunking
+8. Chunk-based RAG integration
+9. Local LLM generation
 
 Future work will focus on improving document ingestion, retrieval quality, prompt construction, and the overall RAG pipeline.
-
-## Usage Example
-
-The RAG pipeline can be used directly from Python:
-
-```python
-from devassistant.rag import get_answer
-
-documents = [
-    "Python is a high-level programming language.",
-    "C++ is a compiled programming language commonly used for game development.",
-    "RAG combines document retrieval with language model generation.",
-]
-
-question = "What is RAG?"
-
-answer = get_answer(
-    documents=documents,
-    question=question,
-)
-
-print(answer)
-```
-
-The pipeline performs the following steps:
-
-1. Generate embeddings for the documents.
-2. Generate an embedding for the question.
-3. Compute the cosine similarity between the question and each document.
-4. Retrieve the most relevant documents.
-5. Build a context from the retrieved documents.
-6. Send the context and question to the local LLM through LM Studio.
-7. Return the generated answer.
-
-For the example above, the retrieved context should contain the document describing RAG, and the local LLM can use that context to generate the answer.
-
 
 ## License
 
