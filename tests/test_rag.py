@@ -88,7 +88,9 @@ def test_get_answer(monkeypatch, documents, fake_ask):
 
     assert captured["prompt"] == (
         "Context:\n"
+        "Source: rag.md\n"
         "RAG combines document retrieval with language model generation.\n"
+        "Source: python.md\n"
         "Python is a high-level programming language.\n"
         "Question:\n"
         "What is RAG?"
@@ -164,11 +166,12 @@ def test_get_answer_with_chunks(monkeypatch, tmp_path):
     assert len(captured["documents"]) > 1
 
     assert captured["prompt"] == (
-    "Context:\n"
-    f"{captured['documents'][1]['content']}\n"
-    "Question:\n"
-    "What does RAG retrieve?"
-)
+        "Context:\n"
+        f"Source: {captured['documents'][1]['source']}\n"
+        f"{captured['documents'][1]['content']}\n"
+        "Question:\n"
+        "What does RAG retrieve?"
+    )
 
 
 def test_get_answer_with_top_k(monkeypatch, tmp_path):
@@ -208,3 +211,51 @@ def test_get_answer_with_top_k(monkeypatch, tmp_path):
 
     assert answer == "Answer"
     assert captured["top_k"] == 5
+
+def test_get_answer_includes_sources(monkeypatch, tmp_path):
+    document = tmp_path / "rag.md"
+    document.write_text(
+        "RAG retrieves relevant information."
+    )
+
+    captured = {}
+
+    def fake_search(documents, question, top_k=3):
+        return [
+            (
+                1.0,
+                {
+                    "content": "RAG retrieves relevant information.",
+                    "source": "rag.md",
+                },
+            ),
+        ]
+
+    def fake_ask(prompt):
+        captured["prompt"] = prompt
+        return "Answer"
+
+    monkeypatch.setattr(
+        "devassistant.rag.search",
+        fake_search,
+    )
+
+    monkeypatch.setattr(
+        "devassistant.rag.ask",
+        fake_ask,
+    )
+
+    answer = get_answer(
+        directory=tmp_path,
+        question="What does RAG retrieve?",
+    )
+
+    assert answer == "Answer"
+
+    assert captured["prompt"] == (
+        "Context:\n"
+        "Source: rag.md\n"
+        "RAG retrieves relevant information.\n"
+        "Question:\n"
+        "What does RAG retrieve?"
+    )
