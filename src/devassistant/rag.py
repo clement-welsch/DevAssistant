@@ -18,12 +18,17 @@ def get_answer(directory, question, chunk_size=60, overlap=12, top_k=3):
     )
 
     contexts = []
+    sources = []
 
     for document in best_docs:
+        source = document[1]["source"]
+
         contexts.append(
-            f"Source: {document[1]['source']}\n"
+            f"Source: {source}\n"
             f"{document[1]['content']}"
         )
+
+        sources.append(source)
 
     context = "\n".join(contexts)
 
@@ -34,4 +39,7 @@ def get_answer(directory, question, chunk_size=60, overlap=12, top_k=3):
 
     response = ask(prompt)
 
-    return response
+    return {
+        "answer": response,
+        "sources": sources,
+    }

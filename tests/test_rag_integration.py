@@ -19,5 +19,6 @@ def test_rag_integration(tmp_path):
         question=question,
     )
 
-    assert isinstance(answer, str)
-    assert answer
+    assert isinstance(answer, dict)
+    assert answer["answer"]
+    assert answer["sources"]

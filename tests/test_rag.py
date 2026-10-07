@@ -84,7 +84,10 @@ def test_get_answer(monkeypatch, documents, fake_ask):
         question="What is RAG?",
     )
 
-    assert answer == "Here is the generated answer."
+    assert answer == {
+        "answer": "Here is the generated answer.",
+        "sources": ["rag.md", "python.md"],
+    }
 
     assert captured["prompt"] == (
         "Context:\n"
@@ -115,7 +118,10 @@ def test_get_answer_empty_directory(monkeypatch, tmp_path, fake_ask):
         question="What is RAG?",
     )
 
-    assert answer == "Here is the generated answer."
+    assert answer == {
+        "answer": "Here is the generated answer.",
+        "sources": [],
+    }
 
     assert captured["prompt"] == (
         "Context:\n\n"
@@ -161,7 +167,10 @@ def test_get_answer_with_chunks(monkeypatch, tmp_path):
         overlap=2,
     )
 
-    assert answer == "RAG retrieves relevant information."
+    assert answer == {
+        "answer": "RAG retrieves relevant information.",
+        "sources": ["document.md"],
+    }
 
     assert len(captured["documents"]) > 1
 
@@ -209,7 +218,10 @@ def test_get_answer_with_top_k(monkeypatch, tmp_path):
         top_k=5,
     )
 
-    assert answer == "Answer"
+    assert answer == {
+        "answer": "Answer",
+        "sources": [],
+    }
     assert captured["top_k"] == 5
 
 def test_get_answer_includes_sources(monkeypatch, tmp_path):
@@ -250,7 +262,10 @@ def test_get_answer_includes_sources(monkeypatch, tmp_path):
         question="What does RAG retrieve?",
     )
 
-    assert answer == "Answer"
+    assert answer == {
+        "answer": "Answer",
+        "sources": ["rag.md"],
+    }
 
     assert captured["prompt"] == (
         "Context:\n"
@@ -259,3 +274,46 @@ def test_get_answer_includes_sources(monkeypatch, tmp_path):
         "Question:\n"
         "What does RAG retrieve?"
     )
+
+def test_get_answer_returns_sources(monkeypatch, tmp_path):
+    document = tmp_path / "rag.md"
+    document.write_text(
+        "RAG retrieves relevant information."
+    )
+
+    captured = {}
+
+    def fake_search(documents, question, top_k=3):
+        return [
+            (
+                1.0,
+                {
+                    "content": "RAG retrieves relevant information.",
+                    "source": "rag.md",
+                },
+            ),
+        ]
+
+    def fake_ask(prompt):
+        captured["prompt"] = prompt
+        return "RAG retrieves relevant information."
+
+    monkeypatch.setattr(
+        "devassistant.rag.search",
+        fake_search,
+    )
+
+    monkeypatch.setattr(
+        "devassistant.rag.ask",
+        fake_ask,
+    )
+
+    result = get_answer(
+        directory=tmp_path,
+        question="What does RAG retrieve?",
+    )
+
+    assert result == {
+        "answer": "RAG retrieves relevant information.",
+        "sources": ["rag.md"],
+    }
