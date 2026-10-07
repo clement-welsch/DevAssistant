@@ -20,7 +20,10 @@ def get_answer(directory, question, chunk_size=60, overlap=12, top_k=3):
     contexts = []
 
     for document in best_docs:
-        contexts.append(document[1]["content"])
+        contexts.append(
+            f"Source: {document[1]['source']}\n"
+            f"{document[1]['content']}"
+        )
 
     context = "\n".join(contexts)
 
