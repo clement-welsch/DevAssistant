@@ -129,3 +129,51 @@ def test_search_keeps_document_metadata(monkeypatch):
         "content": "RAG retrieves relevant information.",
         "source": "rag.md",
     }
+
+def test_search_filters_results_below_score_threshold(monkeypatch):
+    documents = [
+        {
+            "content": "Relevant document",
+            "source": "relevant.md",
+        },
+        {
+            "content": "Very relevant document",
+            "source": "very_relevant.md",
+        },
+        {
+            "content": "Irrelevant document",
+            "source": "irrelevant.md",
+        },
+    ]
+
+    def fake_embed(texts):
+        if texts == ["What is relevant?"]:
+            return [[1.0, 0.0]]
+
+        return [
+            [1.0, 0.0],
+            [0.9, 0.0],
+            [0.4, 0.0],
+        ]
+
+    def fake_similarity(a, b):
+        return a[0]
+
+    monkeypatch.setattr(
+        "devassistant.search.embed",
+        fake_embed,
+    )
+
+    monkeypatch.setattr(
+        "devassistant.search.cosine_similarity",
+        fake_similarity,
+    )
+
+    results = search(
+        documents,
+        question="What is relevant?",
+        top_k=3,
+        score_threshold=0.7,
+    )
+
+    assert [score for score, _ in results] == [1.0, 0.9]

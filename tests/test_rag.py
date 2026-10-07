@@ -20,7 +20,12 @@ def documents(tmp_path):
 
 @pytest.fixture
 def fake_search():
-    def _fake_search(documents, question, top_k=3):
+    def _fake_search(
+        documents,
+        question,
+        top_k=3,
+        score_threshold=0.0,
+    ):
         return [
             (1.0, "RAG combines document retrieval with language model generation."),
             (0.7, "Python is a high-level programming language."),
@@ -43,7 +48,12 @@ def fake_ask():
 def test_get_answer(monkeypatch, documents, fake_ask):
     captured = {}
 
-    def fake_search(documents, question, top_k=3):
+    def fake_search(
+        documents,
+        question,
+        top_k=3,
+        score_threshold=0.0,
+    ):
         return [
             (
                 1.0,
@@ -105,7 +115,7 @@ def test_get_answer_empty_directory(monkeypatch, tmp_path, fake_ask):
 
     monkeypatch.setattr(
         "devassistant.rag.search",
-        lambda documents, question, top_k=3: [],
+        lambda documents, question, top_k=3, score_threshold=0.0: [],
     )
 
     monkeypatch.setattr(
@@ -140,7 +150,12 @@ def test_get_answer_with_chunks(monkeypatch, tmp_path):
 
     captured = {}
 
-    def fake_search(documents, question, top_k=3):
+    def fake_search(
+        documents,
+        question,
+        top_k=3,
+        score_threshold=0.0,
+    ):
         captured["documents"] = documents
         return [
             (1.0, documents[1]),
@@ -193,7 +208,12 @@ def test_get_answer_with_top_k(monkeypatch, tmp_path):
 
     captured = {}
 
-    def fake_search(documents, question, top_k=3):
+    def fake_search(
+        documents,
+        question,
+        top_k=3,
+        score_threshold=0.0,
+    ):
         captured["top_k"] = top_k
         return []
 
@@ -232,7 +252,12 @@ def test_get_answer_includes_sources(monkeypatch, tmp_path):
 
     captured = {}
 
-    def fake_search(documents, question, top_k=3):
+    def fake_search(
+        documents,
+        question,
+        top_k=3,
+        score_threshold=0.0,
+    ):
         return [
             (
                 1.0,
@@ -283,7 +308,12 @@ def test_get_answer_returns_sources(monkeypatch, tmp_path):
 
     captured = {}
 
-    def fake_search(documents, question, top_k=3):
+    def fake_search(
+        documents,
+        question,
+        top_k=3,
+        score_threshold=0.0,
+    ):
         return [
             (
                 1.0,
@@ -326,7 +356,12 @@ def test_get_answer_returns_unique_sources(monkeypatch, tmp_path):
 
     captured = {}
 
-    def fake_search(documents, question, top_k=3):
+    def fake_search(
+        documents,
+        question,
+        top_k=3,
+        score_threshold=0.0,
+    ):
         return [
             (
                 1.0,
@@ -401,3 +436,104 @@ def test_build_context():
         "Source: python.md\n"
         "Second relevant chunk."
     )
+
+def test_get_answer_passes_score_threshold(monkeypatch, tmp_path):
+    document = tmp_path / "rag.md"
+    document.write_text(
+        "RAG retrieves relevant information."
+    )
+
+    captured = {}
+
+    def fake_search(
+        documents,
+        question,
+        top_k=3,
+        score_threshold=0.0,
+    ):
+        captured["score_threshold"] = score_threshold
+
+        return [
+            (
+                1.0,
+                {
+                    "content": "RAG retrieves relevant information.",
+                    "source": "rag.md",
+                },
+            ),
+        ]
+
+    def fake_ask(prompt):
+        return "Here is the generated answer."
+
+    monkeypatch.setattr(
+        "devassistant.rag.search",
+        fake_search,
+    )
+
+    monkeypatch.setattr(
+        "devassistant.rag.ask",
+        fake_ask,
+    )
+
+    get_answer(
+        directory=tmp_path,
+        question="What does RAG retrieve?",
+        score_threshold=0.7,
+    )
+
+    assert captured["score_threshold"] == 0.7
+
+def test_get_answer_excludes_documents_below_score_threshold(
+    monkeypatch,
+    tmp_path,
+):
+    document = tmp_path / "rag.md"
+    document.write_text(
+        "RAG retrieves relevant information."
+    )
+
+    captured = {}
+
+    def fake_search(
+        documents,
+        question,
+        top_k=3,
+        score_threshold=0.0,
+    ):
+        assert score_threshold == 0.7
+
+        return [
+            (
+                0.9,
+                {
+                    "content": "Relevant information.",
+                    "source": "relevant.md",
+                },
+            ),
+        ]
+
+    def fake_ask(prompt):
+        captured["prompt"] = prompt
+        return "Here is the generated answer."
+
+    monkeypatch.setattr(
+        "devassistant.rag.search",
+        fake_search,
+    )
+
+    monkeypatch.setattr(
+        "devassistant.rag.ask",
+        fake_ask,
+    )
+
+    result = get_answer(
+        directory=tmp_path,
+        question="What is relevant?",
+        score_threshold=0.7,
+    )
+
+    assert result["answer"] == "Here is the generated answer."
+    assert result["sources"] == ["relevant.md"]
+    assert "Relevant information." in captured["prompt"]
+    assert "Irrelevant information." not in captured["prompt"]
