@@ -28,7 +28,8 @@ def get_answer(directory, question, chunk_size=60, overlap=12, top_k=3):
             f"{document[1]['content']}"
         )
 
-        sources.append(source)
+        if source not in sources:
+            sources.append(source)
 
     context = "\n".join(contexts)
 

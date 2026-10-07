@@ -317,3 +317,60 @@ def test_get_answer_returns_sources(monkeypatch, tmp_path):
         "answer": "RAG retrieves relevant information.",
         "sources": ["rag.md"],
     }
+
+def test_get_answer_returns_unique_sources(monkeypatch, tmp_path):
+    document = tmp_path / "rag.md"
+    document.write_text(
+        "RAG retrieves relevant information."
+    )
+
+    captured = {}
+
+    def fake_search(documents, question, top_k=3):
+        return [
+            (
+                1.0,
+                {
+                    "content": "First relevant chunk.",
+                    "source": "rag.md",
+                },
+            ),
+            (
+                0.9,
+                {
+                    "content": "Second relevant chunk.",
+                    "source": "rag.md",
+                },
+            ),
+            (
+                0.8,
+                {
+                    "content": "Another relevant chunk.",
+                    "source": "python.md",
+                },
+            ),
+        ]
+
+    def fake_ask(prompt):
+        captured["prompt"] = prompt
+        return "Here is the generated answer."
+
+    monkeypatch.setattr(
+        "devassistant.rag.search",
+        fake_search,
+    )
+
+    monkeypatch.setattr(
+        "devassistant.rag.ask",
+        fake_ask,
+    )
+
+    result = get_answer(
+        directory=tmp_path,
+        question="What does RAG retrieve?",
+    )
+
+    assert result == {
+        "answer": "Here is the generated answer.",
+        "sources": ["rag.md", "python.md"],
+    }
