@@ -17,7 +17,14 @@ def build_context(documents):
     return "\n".join(contexts)
 
 
-def get_answer(directory, question, chunk_size=60, overlap=12, top_k=3):
+def get_answer(
+    directory,
+    question,
+    chunk_size=60,
+    overlap=12,
+    top_k=3,
+    score_threshold=0.0,
+):
     documents = load_documents(
         directory,
         chunk_size=chunk_size,
@@ -28,6 +35,7 @@ def get_answer(directory, question, chunk_size=60, overlap=12, top_k=3):
         documents,
         question,
         top_k=top_k,
+        score_threshold=score_threshold,
     )
 
     sources = []
