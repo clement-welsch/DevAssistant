@@ -3,6 +3,19 @@ from devassistant.search import search
 from devassistant.lmstudio_client import ask
 from devassistant.prompt import build_prompt
 
+def build_context(documents):
+    contexts = []
+
+    for document in documents:
+        source = document[1]["source"]
+
+        contexts.append(
+            f"Source: {source}\n"
+            f"{document[1]['content']}"
+        )
+
+    return "\n".join(contexts)
+
 
 def get_answer(directory, question, chunk_size=60, overlap=12, top_k=3):
     documents = load_documents(
@@ -17,21 +30,15 @@ def get_answer(directory, question, chunk_size=60, overlap=12, top_k=3):
         top_k=top_k,
     )
 
-    contexts = []
     sources = []
 
     for document in best_docs:
         source = document[1]["source"]
 
-        contexts.append(
-            f"Source: {source}\n"
-            f"{document[1]['content']}"
-        )
-
         if source not in sources:
             sources.append(source)
 
-    context = "\n".join(contexts)
+    context = build_context(best_docs)
 
     prompt = build_prompt(
         context,

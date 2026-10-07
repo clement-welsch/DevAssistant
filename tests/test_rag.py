@@ -1,6 +1,6 @@
 import pytest
 
-from devassistant.rag import get_answer
+from devassistant.rag import build_context, get_answer
 
 
 @pytest.fixture
@@ -374,3 +374,30 @@ def test_get_answer_returns_unique_sources(monkeypatch, tmp_path):
         "answer": "Here is the generated answer.",
         "sources": ["rag.md", "python.md"],
     }
+
+def test_build_context():
+    documents = [
+        (
+            1.0,
+            {
+                "content": "First relevant chunk.",
+                "source": "rag.md",
+            },
+        ),
+        (
+            0.8,
+            {
+                "content": "Second relevant chunk.",
+                "source": "python.md",
+            },
+        ),
+    ]
+
+    context = build_context(documents)
+
+    assert context == (
+        "Source: rag.md\n"
+        "First relevant chunk.\n"
+        "Source: python.md\n"
+        "Second relevant chunk."
+    )
