@@ -1,3 +1,5 @@
+from math import isfinite
+
 from devassistant.embeddings import embed
 from devassistant.similarity import cosine_similarity
 
@@ -8,6 +10,17 @@ def search(
     top_k=3,
     score_threshold=0.0,
 ):
+    if top_k < 0:
+        raise ValueError("top_k must be greater than or equal to 0")
+
+    if not isfinite(score_threshold) or not -1.0 <= score_threshold <= 1.0:
+        raise ValueError(
+            "score_threshold must be a finite value between -1.0 and 1.0"
+        )
+
+    if top_k == 0 or not documents:
+        return []
+
     contents = [document["content"] for document in documents]
 
     vectors_docs = embed(contents)
@@ -21,21 +34,14 @@ def search(
         score = cosine_similarity(vector, question_vector)
 
         if score >= score_threshold:
-            scored_chunks.append(
-                (
-                    score,
-                    document,
-                )
-            )
+            scored_chunks.append((score, document))
 
     scored_chunks.sort(
         key=lambda item: item[0],
         reverse=True,
     )
 
-    document_scores = aggregate_document_scores(
-        scored_chunks
-    )
+    document_scores = aggregate_document_scores(scored_chunks)
 
     selected_sources = {
         source
@@ -47,6 +53,7 @@ def search(
         for item in scored_chunks
         if item[1]["source"] in selected_sources
     ]
+
 
 def aggregate_document_scores(results):
     document_scores = {}
@@ -67,5 +74,5 @@ def aggregate_document_scores(results):
             (score, source)
             for source, score in document_scores.items()
         ],
-        reverse=True,
+        key=lambda item: (-item[0], item[1]),
     )

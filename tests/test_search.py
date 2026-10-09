@@ -235,10 +235,10 @@ def test_search_top_k_limits_documents(monkeypatch):
             return [[1.0, 0.0]]
 
         return [
-            [0.9, 0.0],
-            [0.8, 0.0],
-            [0.7, 0.0],
-            [0.6, 0.0],
+            [1.0, 0.0],
+            [0.8, 0.6],
+            [0.6, 0.8],
+            [0.0, 1.0],
         ]
 
     monkeypatch.setattr(
@@ -263,3 +263,84 @@ def test_search_top_k_limits_documents(monkeypatch):
     }
 
     assert len(results) == 3
+
+def test_search_rejects_negative_top_k():
+    with pytest.raises(ValueError, match="top_k"):
+        search([], "What is relevant?", top_k=-1)
+
+
+def test_search_returns_empty_list_when_documents_are_empty(monkeypatch):
+    def fail_if_called(*args, **kwargs):
+        pytest.fail("Embeddings should not be computed for empty documents")
+
+    monkeypatch.setattr("devassistant.search.embed", fail_if_called)
+
+    assert search([], "What is relevant?") == []
+
+
+def test_search_returns_empty_list_when_top_k_is_zero(monkeypatch):
+    def fail_if_called(*args, **kwargs):
+        pytest.fail("Embeddings should not be computed when top_k is zero")
+
+    monkeypatch.setattr("devassistant.search.embed", fail_if_called)
+
+    documents = [
+        {
+            "content": "Example document",
+            "source": "example.md",
+        }
+    ]
+
+    assert search(documents, "What is relevant?", top_k=0) == []
+
+
+@pytest.mark.parametrize(
+    "score_threshold",
+    [
+        -1.01,
+        1.01,
+        float("nan"),
+        float("inf"),
+        float("-inf"),
+    ],
+)
+def test_search_rejects_invalid_score_threshold(score_threshold):
+    with pytest.raises(ValueError, match="score_threshold"):
+        search([], "What is relevant?", score_threshold=score_threshold)
+
+
+@pytest.mark.parametrize("score_threshold", [-1.0, 1.0])
+def test_search_accepts_score_threshold_boundaries(score_threshold):
+    assert search(
+        [],
+        "What is relevant?",
+        score_threshold=score_threshold,
+    ) == []
+
+
+def test_aggregate_document_scores_breaks_ties_by_source():
+    results = [
+        (0.8, {"source": "zebra.md"}),
+        (0.9, {"source": "guide.md"}),
+        (0.8, {"source": "architecture.md"}),
+    ]
+
+    assert aggregate_document_scores(results) == [
+        (0.9, "guide.md"),
+        (0.8, "architecture.md"),
+        (0.8, "zebra.md"),
+    ]
+
+
+def test_aggregate_document_scores_counts_each_source_once():
+    results = [
+        (0.7, {"source": "guide.md", "content": "Chunk 1"}),
+        (0.9, {"source": "guide.md", "content": "Chunk 2"}),
+        (0.8, {"source": "installation.md", "content": "Chunk 1"}),
+        (0.6, {"source": "guide.md", "content": "Chunk 3"}),
+    ]
+
+    assert aggregate_document_scores(results) == [
+        (0.9, "guide.md"),
+        (0.8, "installation.md"),
+    ]
