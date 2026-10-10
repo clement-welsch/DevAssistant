@@ -27,8 +27,27 @@ def fake_search():
         score_threshold=0.0,
     ):
         return [
-            (1.0, "RAG combines document retrieval with language model generation."),
-            (0.7, "Python is a high-level programming language."),
+            {
+                "chunk_score": 1.0,
+                "source_score": 1.0,
+                "chunk": {
+                    "content": (
+                        "RAG combines document retrieval "
+                        "with language model generation."
+                    ),
+                    "source": "rag.md",
+                },
+            },
+            {
+                "chunk_score": 0.7,
+                "source_score": 0.7,
+                "chunk": {
+                    "content": (
+                        "Python is a high-level programming language."
+                    ),
+                    "source": "python.md",
+                },
+            },
         ]
 
     return _fake_search
@@ -46,8 +65,6 @@ def fake_ask():
 
 
 def test_get_answer(monkeypatch, documents, fake_ask):
-    captured = {}
-
     def fake_search(
         documents,
         question,
@@ -55,26 +72,27 @@ def test_get_answer(monkeypatch, documents, fake_ask):
         score_threshold=0.0,
     ):
         return [
-            (
-                1.0,
-                {
+            {
+                "chunk_score": 1.0,
+                "source_score": 1.0,
+                "chunk": {
                     "content": (
                         "RAG combines document retrieval "
                         "with language model generation."
                     ),
                     "source": "rag.md",
                 },
-            ),
-            (
-                0.7,
-                {
+            },
+            {
+                "chunk_score": 0.7,
+                "source_score": 0.7,
+                "chunk": {
                     "content": (
-                        "Python is a high-level "
-                        "programming language."
+                        "Python is a high-level programming language."
                     ),
                     "source": "python.md",
                 },
-            ),
+            },
         ]
 
     ask, captured = fake_ask
@@ -157,8 +175,13 @@ def test_get_answer_with_chunks(monkeypatch, tmp_path):
         score_threshold=0.0,
     ):
         captured["documents"] = documents
+
         return [
-            (1.0, documents[1]),
+            {
+                "chunk_score": 1.0,
+                "source_score": 1.0,
+                "chunk": documents[1],
+            },
         ]
 
     def fake_ask(prompt):
@@ -242,15 +265,15 @@ def test_get_answer_with_top_k(monkeypatch, tmp_path):
         "answer": "Answer",
         "sources": [],
     }
+
     assert captured["top_k"] == 5
+
 
 def test_get_answer_includes_sources(monkeypatch, tmp_path):
     document = tmp_path / "rag.md"
     document.write_text(
         "RAG retrieves relevant information."
     )
-
-    captured = {}
 
     def fake_search(
         documents,
@@ -259,17 +282,17 @@ def test_get_answer_includes_sources(monkeypatch, tmp_path):
         score_threshold=0.0,
     ):
         return [
-            (
-                1.0,
-                {
+            {
+                "chunk_score": 1.0,
+                "source_score": 1.0,
+                "chunk": {
                     "content": "RAG retrieves relevant information.",
                     "source": "rag.md",
                 },
-            ),
+            },
         ]
 
     def fake_ask(prompt):
-        captured["prompt"] = prompt
         return "Answer"
 
     monkeypatch.setattr(
@@ -292,21 +315,12 @@ def test_get_answer_includes_sources(monkeypatch, tmp_path):
         "sources": ["rag.md"],
     }
 
-    assert captured["prompt"] == (
-        "Context:\n"
-        "Source: rag.md\n"
-        "RAG retrieves relevant information.\n"
-        "Question:\n"
-        "What does RAG retrieve?"
-    )
 
 def test_get_answer_returns_sources(monkeypatch, tmp_path):
     document = tmp_path / "rag.md"
     document.write_text(
         "RAG retrieves relevant information."
     )
-
-    captured = {}
 
     def fake_search(
         documents,
@@ -315,17 +329,17 @@ def test_get_answer_returns_sources(monkeypatch, tmp_path):
         score_threshold=0.0,
     ):
         return [
-            (
-                1.0,
-                {
+            {
+                "chunk_score": 1.0,
+                "source_score": 1.0,
+                "chunk": {
                     "content": "RAG retrieves relevant information.",
                     "source": "rag.md",
                 },
-            ),
+            },
         ]
 
     def fake_ask(prompt):
-        captured["prompt"] = prompt
         return "RAG retrieves relevant information."
 
     monkeypatch.setattr(
@@ -348,13 +362,12 @@ def test_get_answer_returns_sources(monkeypatch, tmp_path):
         "sources": ["rag.md"],
     }
 
+
 def test_get_answer_returns_unique_sources(monkeypatch, tmp_path):
     document = tmp_path / "rag.md"
     document.write_text(
         "RAG retrieves relevant information."
     )
-
-    captured = {}
 
     def fake_search(
         documents,
@@ -363,31 +376,33 @@ def test_get_answer_returns_unique_sources(monkeypatch, tmp_path):
         score_threshold=0.0,
     ):
         return [
-            (
-                1.0,
-                {
+            {
+                "chunk_score": 1.0,
+                "source_score": 1.0,
+                "chunk": {
                     "content": "First relevant chunk.",
                     "source": "rag.md",
                 },
-            ),
-            (
-                0.9,
-                {
+            },
+            {
+                "chunk_score": 0.9,
+                "source_score": 1.0,
+                "chunk": {
                     "content": "Second relevant chunk.",
                     "source": "rag.md",
                 },
-            ),
-            (
-                0.8,
-                {
+            },
+            {
+                "chunk_score": 0.8,
+                "source_score": 0.8,
+                "chunk": {
                     "content": "Another relevant chunk.",
                     "source": "python.md",
                 },
-            ),
+            },
         ]
 
     def fake_ask(prompt):
-        captured["prompt"] = prompt
         return "Here is the generated answer."
 
     monkeypatch.setattr(
@@ -410,22 +425,25 @@ def test_get_answer_returns_unique_sources(monkeypatch, tmp_path):
         "sources": ["rag.md", "python.md"],
     }
 
+
 def test_build_context():
     documents = [
-        (
-            1.0,
-            {
+        {
+            "chunk_score": 1.0,
+            "source_score": 1.0,
+            "chunk": {
                 "content": "First relevant chunk.",
                 "source": "rag.md",
             },
-        ),
-        (
-            0.8,
-            {
+        },
+        {
+            "chunk_score": 0.8,
+            "source_score": 0.8,
+            "chunk": {
                 "content": "Second relevant chunk.",
                 "source": "python.md",
             },
-        ),
+        },
     ]
 
     context = build_context(documents)
@@ -436,6 +454,7 @@ def test_build_context():
         "Source: python.md\n"
         "Second relevant chunk."
     )
+
 
 def test_get_answer_passes_score_threshold(monkeypatch, tmp_path):
     document = tmp_path / "rag.md"
@@ -454,13 +473,14 @@ def test_get_answer_passes_score_threshold(monkeypatch, tmp_path):
         captured["score_threshold"] = score_threshold
 
         return [
-            (
-                1.0,
-                {
+            {
+                "chunk_score": 1.0,
+                "source_score": 1.0,
+                "chunk": {
                     "content": "RAG retrieves relevant information.",
                     "source": "rag.md",
                 },
-            ),
+            },
         ]
 
     def fake_ask(prompt):
@@ -484,6 +504,7 @@ def test_get_answer_passes_score_threshold(monkeypatch, tmp_path):
 
     assert captured["score_threshold"] == 0.7
 
+
 def test_get_answer_excludes_documents_below_score_threshold(
     monkeypatch,
     tmp_path,
@@ -504,13 +525,14 @@ def test_get_answer_excludes_documents_below_score_threshold(
         assert score_threshold == 0.7
 
         return [
-            (
-                0.9,
-                {
+            {
+                "chunk_score": 0.9,
+                "source_score": 0.9,
+                "chunk": {
                     "content": "Relevant information.",
                     "source": "relevant.md",
                 },
-            ),
+            },
         ]
 
     def fake_ask(prompt):

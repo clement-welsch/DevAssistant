@@ -10,6 +10,7 @@ def search(
     top_k=3,
     score_threshold=0.0,
 ):
+    """Search for relevant chunks and return their individual and source scores."""
     if top_k < 0:
         raise ValueError("top_k must be greater than or equal to 0")
 
@@ -25,16 +26,15 @@ def search(
 
     vectors_docs = embed(contents)
     vectors_question = embed([question])
-
     question_vector = vectors_question[0]
 
     scored_chunks = []
 
     for vector, document in zip(vectors_docs, documents):
-        score = cosine_similarity(vector, question_vector)
+        chunk_score = cosine_similarity(vector, question_vector)
 
-        if score >= score_threshold:
-            scored_chunks.append((score, document))
+        if chunk_score >= score_threshold:
+            scored_chunks.append((chunk_score, document))
 
     scored_chunks.sort(
         key=lambda item: item[0],
@@ -43,19 +43,29 @@ def search(
 
     document_scores = aggregate_document_scores(scored_chunks)
 
+    source_scores = {
+        source: score
+        for score, source in document_scores
+    }
+
     selected_sources = {
         source
         for _, source in document_scores[:top_k]
     }
 
     return [
-        item
-        for item in scored_chunks
-        if item[1]["source"] in selected_sources
+        {
+            "chunk_score": chunk_score,
+            "source_score": source_scores[chunk["source"]],
+            "chunk": chunk,
+        }
+        for chunk_score, chunk in scored_chunks
+        if chunk["source"] in selected_sources
     ]
 
 
 def aggregate_document_scores(results):
+    """Return each source's maximum chunk score, sorted by score then source."""
     document_scores = {}
 
     for score, document in results:

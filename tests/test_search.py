@@ -37,13 +37,14 @@ def test_search(monkeypatch):
         "What is RAG?",
     )
 
-    assert results[0] == (
-        1.0,
-        {
+    assert results[0] == {
+        "chunk_score": 1.0,
+        "source_score": 1.0,
+        "chunk": {
             "content": "RAG retrieves relevant information.",
             "source": "rag.md",
         },
-    )
+    }
 
 
 def test_search_top_k(monkeypatch):
@@ -88,7 +89,7 @@ def test_search_top_k(monkeypatch):
     )
 
     assert len(results) == 2
-    assert results[0][1]["source"] == "rag.md"
+    assert results[0]["chunk"]["source"] == "rag.md"
 
 
 def test_search_keeps_document_metadata(monkeypatch):
@@ -125,7 +126,7 @@ def test_search_keeps_document_metadata(monkeypatch):
         "What is RAG?",
     )
 
-    assert results[0][1] == {
+    assert results[0]["chunk"] == {
         "content": "RAG retrieves relevant information.",
         "source": "rag.md",
     }
@@ -176,7 +177,8 @@ def test_search_filters_results_below_score_threshold(monkeypatch):
         score_threshold=0.7,
     )
 
-    assert [score for score, _ in results] == [1.0, 0.9]
+    assert [result["chunk_score"] for result in results] == [1.0, 0.9]
+    assert [result["source_score"] for result in results] == [1.0, 0.9]
 
 def test_aggregate_document_scores_uses_max_chunk_score():
     results = [
@@ -253,8 +255,8 @@ def test_search_top_k_limits_documents(monkeypatch):
     )
 
     sources = {
-        document["source"]
-        for _, document in results
+        result["chunk"]["source"]
+        for result in results
     }
 
     assert sources == {
@@ -343,4 +345,55 @@ def test_aggregate_document_scores_counts_each_source_once():
     assert aggregate_document_scores(results) == [
         (0.9, "guide.md"),
         (0.8, "installation.md"),
+    ]
+
+
+def test_search_preserves_individual_chunk_scores_for_selected_sources(monkeypatch):
+    documents = [
+        {
+            "content": "First RAG chunk.",
+            "source": "rag.md",
+        },
+        {
+            "content": "Second RAG chunk.",
+            "source": "rag.md",
+        },
+        {
+            "content": "Python chunk.",
+            "source": "python.md",
+        },
+    ]
+
+    def fake_embed(texts):
+        if len(texts) == 1:
+            return [[1.0, 0.0]]
+
+        return [
+            [1.0, 0.0],
+            [0.8, 0.6],
+            [0.6, 0.8],
+        ]
+
+    monkeypatch.setattr(
+        "devassistant.search.embed",
+        fake_embed,
+    )
+
+    results = search(
+        documents,
+        "What is relevant?",
+        top_k=1,
+    )
+
+    assert results == [
+        {
+            "chunk_score": 1.0,
+            "source_score": 1.0,
+            "chunk": documents[0],
+        },
+        {
+            "chunk_score": 0.8,
+            "source_score": 1.0,
+            "chunk": documents[1],
+        },
     ]
